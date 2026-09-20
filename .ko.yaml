@@ -1,1 +1,1 @@
-defaultBaseImage: cgr.dev/chainguard/kubectl:latest-dev@sha256:d5f340d044438351413d6cb110f6f8a2abc45a7149aa53e6ade719f069fc3b0a
+defaultBaseImage: cgr.dev/chainguard/kubectl:latest-dev@sha256:1cc0b5ec34514875bc649087cdab4670c3039c07dbf31aa55a429f7bc2e0ee0e
