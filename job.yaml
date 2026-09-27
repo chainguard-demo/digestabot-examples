@@ -8,7 +8,7 @@ spec:
     spec:
       restartPolicy: Never
       initContainers:
-      - image: cgr.dev/chainguard/cosign:latest-dev@sha256:09653ac03c1ac1502c3e3a8831ee79252414e4d659b423b71fb7ed8b097e9c88
-      - image: cgr.dev/chainguard/python:latest@sha256:fb0da8091fbdfbc7180f30f4e90940a65407979f3a6b26ee4951ac103b6d9e53
-      - image: registry.access.redhat.com/ubi9/openjdk-17-runtime:latest@sha256:3a241e7546d51ef6a15c7e524a43a5f9ebc9732b4d05073cef28c165a5318e9a
-      - image: chainguard/node:latest-dev@sha256:4f5d4f180749df83b007b2819e3094210742853395deb0cac28f3ce80433d308
+      - image: cgr.dev/chainguard/cosign:latest-dev@sha256:a790a4f273f25d95e3a1df67a48b792f92a75ca230f31d2cea95371401fe40e1
+      - image: cgr.dev/chainguard/python:latest@sha256:565af762d7f3efedc4e60d7ac7815e41588211d3f5757be33d8303e915ee6c72
+      - image: registry.access.redhat.com/ubi9/openjdk-17-runtime:latest@sha256:5057c21e6ef3bc4ab62fc75291fc819fd3b8be53ba65b499d2681c6d109ed602
+      - image: chainguard/node:latest-dev@sha256:c422a5418cd79766a6373a30635200fc7afe662baada54eee12a31b5a7b6f027
