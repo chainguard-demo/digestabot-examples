@@ -25,9 +25,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
+      contents: read # Clone the repository
+      id-token: write # Federate with octo-sts and chainctl
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
@@ -36,6 +35,18 @@ jobs:
         egress-policy: audit
 
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        # create-pull-request pushes with the octo-sts token; these would
+        # shadow it.
+        persist-credentials: false
+
+    # Mint a token to open the PR with — GitHub Actions isn't allowed to
+    # create pull requests here. Policy in .github/chainguard.
+    - uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
+      id: octo-sts
+      with:
+        scope: ${{ github.repository }}
+        identity: chainctl-image-diff
 
     # Install chainctl. Configure auth with the id of an assumed identity.
     #
@@ -60,7 +71,7 @@ jobs:
     - uses: chainguard-dev/digestabot@afe360aa3b0c29d88844138e8fa0349384398967 # v1.3.1
       id: digestabot
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ steps.octo-sts.outputs.token }}
         create-pr: false
 
     # Revert any changes made by digestabot.
@@ -219,7 +230,7 @@ jobs:
       if: ${{ steps.create_pr_update.outputs.create_pr_update == 'true' }}
       id: pull_request
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ steps.octo-sts.outputs.token }}
         commit-message: 'Update Digests (+ `chainctl image diff`)'
         title: 'Update Digests (+ `chainctl image diff`)'
         body: |

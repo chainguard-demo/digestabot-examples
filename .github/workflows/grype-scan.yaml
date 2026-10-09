@@ -14,10 +14,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
-      checks: write
+      contents: read # Clone the repository
+      id-token: write # Federate with octo-sts; sign the commit with gitsign
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
@@ -26,16 +24,28 @@ jobs:
         egress-policy: audit
 
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        # digestabot pushes with the octo-sts token; these would shadow it.
+        persist-credentials: false
 
     # Install grype
     - uses: anchore/scan-action/download-grype@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
       id: download_grype
 
+    # Mint a token to open the PR and register the check run with — GitHub
+    # Actions isn't allowed to create pull requests here. Policy in
+    # .github/chainguard.
+    - uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
+      id: octo-sts
+      with:
+        scope: ${{ github.repository }}
+        identity: grype-scan
+
     # Run digestabot
     - uses: chainguard-dev/digestabot@afe360aa3b0c29d88844138e8fa0349384398967 # v1.3.1
       id: digestabot
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ steps.octo-sts.outputs.token }}
         title-for-pr: 'Update Digests (+ `grype`)'
         commit-message: 'Update Digests (+ `grype`)'
         branch-for-pr: grype-scan
@@ -164,7 +174,7 @@ jobs:
         fi
 
         # Create a failed check run
-        curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+        curl -X POST -H "Authorization: token ${GH_TOKEN}" \
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/${{ github.repository }}/check-runs \
           -d '{
@@ -178,7 +188,7 @@ jobs:
             }
           }'
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ steps.octo-sts.outputs.token }}
 
     # Find the comment (if it already exists)
     - uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
@@ -186,8 +196,8 @@ jobs:
       if: ${{ steps.digestabot.outputs.pull_request_number != '' }}
       with:
         issue-number: ${{ steps.digestabot.outputs.pull_request_number }}
-        comment-author: 'github-actions[bot]'
         body-includes: 'Results of `grype` for each image.'
+        token: ${{ steps.octo-sts.outputs.token }}
 
     # Create/update comment
     - uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
@@ -198,5 +208,5 @@ jobs:
         body: |
           Results of `grype` for each image.
           ${{ steps.grype_scan.outputs.body }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ steps.octo-sts.outputs.token }}
         edit-mode: replace

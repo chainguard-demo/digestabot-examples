@@ -1,0 +1,14 @@
+# Copyright 2026 Chainguard, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+# Push the branch, open the PR and register the check run for the Grype Scan
+# workflow.
+issuer: https://token.actions.githubusercontent.com
+subject: repo:chainguard-demo/digestabot-examples:ref:refs/heads/main
+claim_pattern:
+  job_workflow_ref: chainguard-demo/digestabot-examples/.github/workflows/grype-scan.yaml@refs/heads/main
+
+permissions:
+  contents: write
+  pull_requests: write
+  checks: write
