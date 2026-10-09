@@ -14,9 +14,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
+      contents: read # Clone the repository
+      id-token: write # Federate with octo-sts, and sign the commit with gitsign
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
@@ -25,12 +24,29 @@ jobs:
         egress-policy: audit
 
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        # digestabot pushes with the octo-sts token through its own credential
+        # helper, so the checkout credentials would only shadow it.
+        persist-credentials: false
+
+    # Mint a short-lived token from .github/chainguard/digestabot.sts.yaml.
+    #
+    # GITHUB_TOKEN can't do this job: GitHub Actions isn't allowed to create
+    # pull requests here, so digestabot ran fine and then failed on the last
+    # step with "GitHub Actions is not permitted to create or approve pull
+    # requests". A token minted by the Octo STS app is not subject to that
+    # restriction.
+    - uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
+      id: octo-sts
+      with:
+        scope: ${{ github.repository }}
+        identity: digestabot
 
     # Run digestabot
     - uses: chainguard-dev/digestabot@afe360aa3b0c29d88844138e8fa0349384398967 # v1.3.1
       id: digestabot
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ steps.octo-sts.outputs.token }}
         title-for-pr: 'Update Digests'
         commit-message: 'Update Digests'
         branch-for-pr: digestabot
