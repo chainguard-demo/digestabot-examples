@@ -49,6 +49,13 @@ It keeps a single issue in sync with the stale tags, since moving to a
 supported tag outlives any one digest PR, and closes it once they are current
 again.
 
+`job.yaml` pins `docker.io/library/python:3.8-slim` so this workflow has
+something to find. Python 3.8 went end of life in 2024 and the tag stopped
+being rebuilt, which is the whole point: its digest never moves, so every
+other workflow here reports nothing to do while the image goes on ageing.
+The `cgr.dev/chainguard/python` tag beside it is rebuilt daily and is never
+flagged.
+
 ## SBOM Diff
 
 Diffs the SPDX SBOM attestation of each updated image between the old and the
