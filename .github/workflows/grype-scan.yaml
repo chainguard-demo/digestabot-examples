@@ -15,7 +15,7 @@ jobs:
 
     permissions:
       contents: read # Clone the repository
-      id-token: write # Federate with octo-sts, and sign the commit with gitsign
+      id-token: write # Federate with octo-sts; sign the commit with gitsign
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
@@ -25,22 +25,16 @@ jobs:
 
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        # digestabot pushes with the octo-sts token through its own credential
-        # helper, so the checkout credentials would only shadow it.
+        # digestabot pushes with the octo-sts token; these would shadow it.
         persist-credentials: false
 
     # Install grype
     - uses: anchore/scan-action/download-grype@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
       id: download_grype
 
-    # Mint a short-lived token from .github/chainguard/grype-scan.sts.yaml.
-    #
-    # GITHUB_TOKEN can't do this job: GitHub Actions isn't allowed to create
-    # pull requests here, so digestabot ran fine and then failed on the last
-    # step with "GitHub Actions is not permitted to create or approve pull
-    # requests". A token minted by the Octo STS app is not subject to that
-    # restriction, and it carries the checks: write this workflow needs to
-    # register its check run.
+    # Mint a token to open the PR and register the check run with — GitHub
+    # Actions isn't allowed to create pull requests here. Policy in
+    # .github/chainguard.
     - uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
       id: octo-sts
       with:
@@ -179,9 +173,7 @@ jobs:
           summary="Found High/Critical severity findings for these images:\n${failed_images}"
         fi
 
-        # Create a failed check run. The token is read from the environment
-        # rather than interpolated into the command, which would otherwise put
-        # a live credential in the process arguments.
+        # Create a failed check run
         curl -X POST -H "Authorization: token ${GH_TOKEN}" \
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/${{ github.repository }}/check-runs \
@@ -199,11 +191,6 @@ jobs:
         GH_TOKEN: ${{ steps.octo-sts.outputs.token }}
 
     # Find the comment (if it already exists)
-    #
-    # Matched on the body alone. The comment is now written by whichever bot
-    # the octo-sts token belongs to rather than github-actions[bot], and
-    # pinning the author to the wrong name finds nothing and posts a duplicate
-    # on every run. The first line of the body is marker enough.
     - uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
       id: find_comment
       if: ${{ steps.digestabot.outputs.pull_request_number != '' }}

@@ -1,9 +1,8 @@
 # Copyright 2026 Chainguard, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-# Push the branch and open the PR for the Grype Scan workflow, comment the
-# scan results on it, and register the check run that fails on High/Critical
-# findings.
+# Push the branch, open the PR and register the check run for the Grype Scan
+# workflow.
 issuer: https://token.actions.githubusercontent.com
 subject: repo:chainguard-demo/digestabot-examples:ref:refs/heads/main
 claim_pattern:
