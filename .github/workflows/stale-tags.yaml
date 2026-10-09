@@ -1,0 +1,98 @@
+name: Stale Tags
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  stale-tags:
+    name: Stale Tags
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+      with:
+        egress-policy: audit
+
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+    # Run digestabot and flag the tags that weren't rebuilt in the last 30
+    # days.
+    #
+    # digestabot keeps the digest behind a tag current, but it can't move you
+    # off a tag that has reached its end of life. Such a tag simply stops
+    # being rebuilt, and the pinned image stops receiving patches while this
+    # workflow goes on reporting no changes -- which reads exactly like
+    # everything being up to date.
+    - uses: chainguard-dev/digestabot@0031b8db9dd4e9a1159893c787a0e75875b0ac4d # main
+      id: digestabot
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        title-for-pr: 'Update Digests (+ stale tags)'
+        commit-message: 'Update Digests (+ stale tags)'
+        branch-for-pr: stale-tags
+        labels-for-pr: ''
+        stale-after: 30
+
+    # digestabot already annotates the stale tags and lists them in the job
+    # summary and the PR body. Acting on one means picking a supported tag
+    # though, which outlives any single digest PR -- and when no digest moved
+    # there is no PR to read. Keep one issue in sync with the `stale_tags`
+    # output instead, and close it once the tags are current again.
+    - name: Track the stale tags in an issue
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        STALE_TAGS: ${{ steps.digestabot.outputs.stale_tags }}
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const title = 'Stale image tags';
+          const staleTags = JSON.parse(process.env.STALE_TAGS || '[]');
+          const { owner, repo } = context.repo;
+
+          const issues = await github.paginate(github.rest.issues.listForRepo, {
+            owner, repo, state: 'open', per_page: 100,
+          });
+          const existing = issues.find(i => !i.pull_request && i.title === title);
+
+          if (staleTags.length === 0) {
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number,
+                body: 'Every tag was rebuilt within the window. Closing.',
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: existing.number, state: 'closed',
+              });
+            }
+            return;
+          }
+
+          const body = [
+            'These tags were not rebuilt recently, so they may have reached their',
+            'end of life and stopped receiving patches. Moving them to a supported',
+            'tag is the only fix; digestabot cannot do it for you.',
+            '',
+            '| Image | Last built | Age | Files |',
+            '| ----- | ---------- | --- | ----- |',
+            ...staleTags.map(t =>
+              `| \`${t.image}\` | ${t.created.slice(0, 10)} | ${t.age_days} days | ` +
+              `${t.files.map(f => `\`${f}\``).join(', ')} |`),
+          ].join('\n');
+
+          if (existing) {
+            await github.rest.issues.update({ owner, repo, issue_number: existing.number, body });
+          } else {
+            await github.rest.issues.create({ owner, repo, title, body });
+          }
