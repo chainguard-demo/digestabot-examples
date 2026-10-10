@@ -1,0 +1,49 @@
+name: Cooldown
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  cooldown:
+    name: Cooldown
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+      with:
+        egress-policy: audit
+
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+    # Run digestabot, but only update to digests that are at least 7 days old.
+    #
+    # A cooldown policy on the registry refuses to serve digests newer than
+    # the cooldown period. Chainguard images are rebuilt often enough that the
+    # latest digest of a tag is usually still inside that window, so the
+    # obvious update is the one the build then can't pull. `min-age` picks the
+    # most recent digest that is old enough instead, and never replaces a
+    # pinned digest with an older one.
+    #
+    # Set it to the cooldown period configured on the registry. It reads the
+    # tag history of the Chainguard registry, so it only applies to cgr.dev
+    # images; the Docker Hub and Red Hat images in `job.yaml` are skipped and
+    # reported in the job summary.
+    - uses: chainguard-dev/digestabot@0031b8db9dd4e9a1159893c787a0e75875b0ac4d # main
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        title-for-pr: 'Update Digests (+ cooldown)'
+        commit-message: 'Update Digests (+ cooldown)'
+        branch-for-pr: cooldown
+        labels-for-pr: ''
+        min-age: 7

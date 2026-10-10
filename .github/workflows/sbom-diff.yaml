@@ -1,0 +1,72 @@
+name: SBOM Diff
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  sbom-diff:
+    name: SBOM Diff
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+      with:
+        egress-policy: audit
+
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+    # Run digestabot and diff the SPDX SBOM attestation of each updated image
+    # between the old and the new digest.
+    #
+    # This answers the question a digest bump otherwise leaves open: the
+    # digest moved, but which packages actually changed? It is off by default
+    # because it fetches two SBOMs per updated image, which adds up on a
+    # repository with many of them. Images that publish no SBOM -- the Docker
+    # Hub and Red Hat images in `job.yaml` -- are listed as such and
+    # otherwise ignored.
+    - uses: chainguard-dev/digestabot@0031b8db9dd4e9a1159893c787a0e75875b0ac4d # main
+      id: digestabot
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        title-for-pr: 'Update Digests (+ SBOM diff)'
+        commit-message: 'Update Digests (+ SBOM diff)'
+        branch-for-pr: sbom-diff
+        labels-for-pr: ''
+        sbom-diff: true
+        sbom-platform: linux/amd64
+
+    # The action writes the package changes to the job summary and uploads the
+    # full diff as an artifact. Put them on the PR as well, which is where the
+    # digests are actually reviewed.
+    - uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
+      id: find_comment
+      if: ${{ steps.digestabot.outputs.pull_request_number != '' }}
+      with:
+        issue-number: ${{ steps.digestabot.outputs.pull_request_number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: 'Package changes for each updated image.'
+
+    - uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+      if: ${{ steps.digestabot.outputs.pull_request_number != '' }}
+      with:
+        comment-id: ${{ steps.find_comment.outputs.comment-id }}
+        issue-number: ${{ steps.digestabot.outputs.pull_request_number }}
+        body: |
+          Package changes for each updated image.
+
+          ${{ steps.digestabot.outputs.sbom_diff }}
+
+          [Download the full diff](${{ steps.digestabot.outputs.sbom_diff_artifact_url }})
+        token: ${{ secrets.GITHUB_TOKEN }}
+        edit-mode: replace

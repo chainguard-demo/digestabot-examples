@@ -12,3 +12,11 @@ spec:
       - image: cgr.dev/chainguard/python:latest@sha256:fb0da8091fbdfbc7180f30f4e90940a65407979f3a6b26ee4951ac103b6d9e53
       - image: registry.access.redhat.com/ubi9/openjdk-17-runtime:latest@sha256:3a241e7546d51ef6a15c7e524a43a5f9ebc9732b4d05073cef28c165a5318e9a
       - image: chainguard/node:latest-dev@sha256:4f5d4f180749df83b007b2819e3094210742853395deb0cac28f3ce80433d308
+      # Deliberately an end-of-life tag, and the one thing the Stale Tags
+      # workflow has to find. Python 3.8 went EOL in 2024 and this tag stopped
+      # being rebuilt, so its digest never moves and digestabot keeps
+      # reporting nothing to do -- which is exactly what an unpatched image
+      # looks like from the outside. Contrast the chainguard/python tag above,
+      # rebuilt daily. Don't move it to a supported image; that removes the
+      # only stale tag in the repository.
+      - image: docker.io/library/python:3.8-slim@sha256:1d52838af602b4b5a831beb13a0e4d073280665ea7be7f69ce2382f29c5a613f

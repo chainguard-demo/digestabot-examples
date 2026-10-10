@@ -1,0 +1,27 @@
+# Signature policy for the Verify Signatures workflow.
+#
+# Each rule maps one or more image prefixes to the certificate identity and
+# issuer that the cosign signature of a new digest must have. Prefixes are
+# matched after `registry-map`, and the longest match wins, so an image is
+# only ever checked against one rule.
+#
+# Images that no rule matches are updated without verification. That is what
+# happens to the Docker Hub and Red Hat images in `job.yaml`: neither carries
+# a keyless signature, so covering them here would skip every update of them.
+
+# The public Chainguard images are signed by the release workflow of
+# chainguard-images/images.
+- images: cgr.dev/chainguard/
+  identity: https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+
+# Images in your own Chainguard organization are signed by its CATALOG_SYNCER
+# and APKO_BUILDER identities instead, so they need a rule of their own. Find
+# the ids with:
+#
+#   chainctl iam account-associations describe YOUR_ORG -o json | jq -r '.[].chainguard.service_bindings.CATALOG_SYNCER'
+#   chainctl iam account-associations describe YOUR_ORG -o json | jq -r '.[].chainguard.service_bindings.APKO_BUILDER'
+#
+# - images: cgr.dev/my-org/
+#   identity-regexp: ^https://issuer\.enforce\.dev/(<catalog-syncer-id>|<apko-builder-id>)$
+#   issuer: https://issuer.enforce.dev

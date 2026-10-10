@@ -1,0 +1,58 @@
+name: Verify Signatures
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-signatures:
+    name: Verify Signatures
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+      with:
+        egress-policy: audit
+
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+    # Run digestabot, verifying the cosign signature of every new digest
+    # before it is written to a file. An update that doesn't verify is skipped
+    # and the old digest is left in place, so an unverified image never
+    # reaches the PR; the rest of the updates still go in.
+    #
+    # The rules can be given inline, but keeping them in a file means a change
+    # to who may sign your images is reviewed like the rest of the repo.
+    # digestabot installs cosign itself when a policy is set.
+    - uses: chainguard-dev/digestabot@0031b8db9dd4e9a1159893c787a0e75875b0ac4d # main
+      id: digestabot
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        title-for-pr: 'Update Digests (+ `cosign verify`)'
+        commit-message: 'Update Digests (+ `cosign verify`)'
+        branch-for-pr: verify-signatures
+        labels-for-pr: ''
+        verify-signatures: .github/digestabot-signatures.yaml
+
+    # A skipped update doesn't fail the job on its own, which would leave the
+    # digest quietly pinned to the old value run after run. Fail the workflow
+    # so someone looks: a digest that stops verifying is either a signing
+    # change to follow or something worse.
+    - name: Fail on skipped updates
+      if: ${{ steps.digestabot.outputs.verification_failures != '' && steps.digestabot.outputs.verification_failures != '[]' }}
+      shell: bash
+      env:
+        FAILURES: ${{ steps.digestabot.outputs.verification_failures }}
+      run: |
+        jq -r '.[] | "\(.image) was not updated to \(.updated_digest) in \(.file): \(.error)"' <<<"${FAILURES}"
+        exit 1
