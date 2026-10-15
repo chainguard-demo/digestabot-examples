@@ -85,17 +85,21 @@ jobs:
     # Construct the PR body.
     - shell: bash
       id: chainctl_image_diff
+      env:
+        GRYPE: ${{ steps.download_grype.outputs.cmd }}
+        UPDATES: ${{ steps.digestabot.outputs.json }}
       run: |
         # Start the PR body
         echo 'body<<EOF' >> "${GITHUB_OUTPUT}"
 
         # Include the grype binary in the path
-        export PATH="$(dirname '${{steps.download_grype.outputs.cmd}}'):${PATH}"
+        grype_dir=$(dirname "${GRYPE}")
+        export PATH="${grype_dir}:${PATH}"
 
         while read -r item; do
-           from_image=$(jq -r '.image + "@" + .digest' <<<$item)
-           to_image=$(jq -r '.image + "@" + .updated_digest' <<<$item)
-           file=$(jq -r '.file' <<<$item)
+           from_image=$(jq -r '.image + "@" + .digest' <<<"$item")
+           to_image=$(jq -r '.image + "@" + .updated_digest' <<<"$item")
+           file=$(jq -r '.file' <<<"$item")
 
            # Store the diff output in a filename derived from the images. We can
            # use this to avoid diffing the same images more than once.
@@ -210,7 +214,7 @@ jobs:
            echo '</details>' >> "${GITHUB_OUTPUT}"
            echo '' >> "${GITHUB_OUTPUT}"
 
-         done < <(jq -c '.updates // [] | .[]' <<<'${{ steps.digestabot.outputs.json }}')
+         done < <(jq -c '.updates // [] | .[]' <<<"${UPDATES}")
 
          # Close the body
          echo 'EOF' >> "${GITHUB_OUTPUT}"
@@ -220,9 +224,9 @@ jobs:
       shell: bash
       run: |
         git diff --stat
-        echo "create_pr_update=false" >> $GITHUB_OUTPUT
+        echo "create_pr_update=false" >> "$GITHUB_OUTPUT"
         if [[ $(git diff --stat) != '' ]]; then
-          echo "create_pr_update=true" >> $GITHUB_OUTPUT
+          echo "create_pr_update=true" >> "$GITHUB_OUTPUT"
         fi
 
     # Create the pull request
