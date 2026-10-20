@@ -59,6 +59,9 @@ jobs:
     - shell: bash
       id: grype_scan
       if: ${{ steps.digestabot.outputs.pull_request_number != '' }}
+      env:
+        GRYPE: ${{ steps.download_grype.outputs.cmd }}
+        UPDATES: ${{ steps.digestabot.outputs.json }}
       run: |
         # Track images with High/Critical findings in this output
         failed_images='[]'
@@ -67,7 +70,7 @@ jobs:
         echo 'body<<EOF' >> "${GITHUB_OUTPUT}"
 
         while read -r item; do
-          image=$(jq -r '.image + "@" + .updated_digest' <<<$item)
+          image=$(jq -r '.image + "@" + .updated_digest' <<<"$item")
 
           # Store the scan output in a filename derived from the image name. We
           # can use this to avoid scanning the same images more than once.
@@ -81,7 +84,7 @@ jobs:
 
           # Scan the image, save the results
           echo "Scanning ${image}"
-          ${{steps.download_grype.outputs.cmd}} "${image}" --add-cpes-if-none -o json > "${grype_output}"
+          "${GRYPE}" "${image}" --add-cpes-if-none -o json > "${grype_output}"
 
           # This is the emoji we will include next to the image in the comment
           # body
@@ -144,7 +147,7 @@ jobs:
           echo '' >> "${GITHUB_OUTPUT}"
           echo '</details>' >> "${GITHUB_OUTPUT}"
           echo '' >> "${GITHUB_OUTPUT}"
-         done < <(jq -c '.updates // [] | .[]' <<<'${{ steps.digestabot.outputs.json }}')
+         done < <(jq -c '.updates // [] | .[]' <<<"${UPDATES}")
 
          # Close the body
          echo 'EOF' >> "${GITHUB_OUTPUT}"
@@ -157,10 +160,10 @@ jobs:
       shell: bash
       run: |
         # Get the commit SHA for the PR
-        commit_sha=$(gh api repos/${{ github.repository }}/pulls/${{ steps.digestabot.outputs.pull_request_number }} --jq '.head.sha')
+        commit_sha=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq '.head.sha')
 
         # Format the failed images one per line
-        failed_images=$(jq -r '. | join("\\n")' <<<'${{ steps.grype_scan.outputs.failed_images }}')
+        failed_images=$(jq -r '. | join("\\n")' <<<"${FAILED_IMAGES}")
 
         # Configure the inputs to the check based on whether we have any failed
         # images
@@ -176,7 +179,7 @@ jobs:
         # Create a failed check run
         curl -X POST -H "Authorization: token ${GH_TOKEN}" \
           -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/check-runs \
+          "https://api.github.com/repos/${REPO}/check-runs" \
           -d '{
             "name": "Grype Scan",
             "head_sha": "'"${commit_sha}"'",
@@ -189,6 +192,9 @@ jobs:
           }'
       env:
         GH_TOKEN: ${{ steps.octo-sts.outputs.token }}
+        REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ steps.digestabot.outputs.pull_request_number }}
+        FAILED_IMAGES: ${{ steps.grype_scan.outputs.failed_images }}
 
     # Find the comment (if it already exists)
     - uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
