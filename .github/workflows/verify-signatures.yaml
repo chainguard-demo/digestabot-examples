@@ -45,7 +45,7 @@ jobs:
     # happens to the Docker Hub and Red Hat images in `job.yaml` -- neither
     # carries a keyless signature, so covering them would skip every update of
     # them. digestabot installs cosign itself when a policy is set.
-    - uses: chainguard-dev/digestabot@0031b8db9dd4e9a1159893c787a0e75875b0ac4d # main
+    - uses: chainguard-dev/digestabot@afe360aa3b0c29d88844138e8fa0349384398967 # main
       id: digestabot
       with:
         token: ${{ steps.octo-sts.outputs.token }}

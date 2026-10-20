@@ -68,7 +68,7 @@ jobs:
     - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
     # Run digestabot. Don't create the PR.
-    - uses: chainguard-dev/digestabot@afe360aa3b0c29d88844138e8fa0349384398967 # v1.3.1
+    - uses: chainguard-dev/digestabot@33d0b78e580aa0c83fe188eb3dfad6611b662479 # v1.3.2
       id: digestabot
       with:
         token: ${{ steps.octo-sts.outputs.token }}

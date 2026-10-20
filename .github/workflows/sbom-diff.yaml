@@ -45,7 +45,7 @@ jobs:
     # repository with many of them. Images that publish no SBOM -- the Docker
     # Hub and Red Hat images in `job.yaml` -- are listed as such and
     # otherwise ignored.
-    - uses: chainguard-dev/digestabot@0031b8db9dd4e9a1159893c787a0e75875b0ac4d # main
+    - uses: chainguard-dev/digestabot@afe360aa3b0c29d88844138e8fa0349384398967 # main
       id: digestabot
       with:
         token: ${{ steps.octo-sts.outputs.token }}
