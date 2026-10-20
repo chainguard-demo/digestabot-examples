@@ -41,10 +41,12 @@ jobs:
     # and the old digest is left in place, so an unverified image never
     # reaches the PR; the rest of the updates still go in.
     #
-    # Images no rule matches are updated without verification, which is what
-    # happens to the Docker Hub and Red Hat images in `job.yaml` -- neither
-    # carries a keyless signature, so covering them would skip every update of
-    # them. digestabot installs cosign itself when a policy is set.
+    # Prefixes are matched against the reference as written, so the Chainguard
+    # images on Docker Hub need their own; they carry the same signature as the
+    # cgr.dev ones. Images no rule matches are updated without verification,
+    # which is what happens to the Red Hat image in `job.yaml` -- its signature
+    # isn't in the Sigstore trust root, so covering it would skip every update
+    # of it. digestabot installs cosign itself when a policy is set.
     - uses: chainguard-dev/digestabot@0031b8db9dd4e9a1159893c787a0e75875b0ac4d # main
       id: digestabot
       with:
@@ -54,7 +56,9 @@ jobs:
         branch-for-pr: verify-signatures
         labels-for-pr: ''
         verify-signatures: |
-          - images: cgr.dev/chainguard/
+          - images:
+              - cgr.dev/chainguard/
+              - chainguard/
             identity: https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main
             issuer: https://token.actions.githubusercontent.com
 
