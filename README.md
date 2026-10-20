@@ -70,3 +70,6 @@ Only updates to digests that are at least 7 days old, so a
 [cooldown policy](https://edu.chainguard.dev/chainguard/chainguard-repository/container-policies/#cooldown)
 on the registry doesn't block pulling the digest that `digestabot` just
 proposed.
+
+It comments on the PR with the digest each image was held at and the newest one
+in that tag's history, which is the part the diff doesn't show.
