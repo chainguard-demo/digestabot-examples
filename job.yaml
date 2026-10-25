@@ -8,8 +8,8 @@ spec:
     spec:
       restartPolicy: Never
       initContainers:
-      - image: cgr.dev/chainguard/cosign:latest-dev@sha256:1b3a26cd1266682b8b2710350d5938d01fce9ad230e813afdcc2d75125c0cf15
-      - image: cgr.dev/chainguard/python:latest@sha256:6cc531a9ee4256bad0d3911da829906cb3c14c1d4aba9640004a94c0adf694e8
-      - image: registry.access.redhat.com/ubi9/openjdk-17-runtime:latest@sha256:24edfda67d1afae5fd48b193320ab2b357340fd06f6d8b4e3e8cd04db6ebebe8
-      - image: chainguard/node:latest-dev@sha256:39c8bdc2976cb54cc5078aeafd0716bf536d126058d5cec147ecee785c32f683
+      - image: cgr.dev/chainguard/cosign:latest-dev@sha256:44c8b291f418d111b0c7511d8fc46243f8147f3f01292cbb51a70cbc54fddfc0
+      - image: cgr.dev/chainguard/python:latest@sha256:fd6d0771e8ec99b1710dfc3d72ca19ba2ff6b14f72b7978922ab0c8acb72c3f3
+      - image: registry.access.redhat.com/ubi9/openjdk-17-runtime:latest@sha256:b65af124e0461fcdcae4cbb391ae827868d8fd01ca030a71c1c9eb2b42b01368
+      - image: chainguard/node:latest-dev@sha256:13afe2c05d49286578b74c4a14b8e4bbe70e98828abeb3d0ea9f9fd2af4cc431
       - image: docker.io/library/python:3.8-slim@sha256:1d52838af602b4b5a831beb13a0e4d073280665ea7be7f69ce2382f29c5a613f
