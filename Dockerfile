@@ -1,1 +1,1 @@
-FROM cgr.dev/chainguard/busybox:latest@sha256:c1f1846d3b436d77839e647e062b83cb4ff7a0e631c46366e24fbf2cd3e55051
+FROM cgr.dev/chainguard/busybox:latest@sha256:9cf938251dfb3cc081ef9847e79c203b5de90ecc20855e40bef8a7cc191bb218
