@@ -49,7 +49,7 @@ jobs:
     # tag history of the Chainguard registry, so it only applies to cgr.dev
     # images; the Docker Hub and Red Hat images in `job.yaml` are skipped and
     # reported in the job summary.
-    - uses: chainguard-dev/digestabot@0031b8db9dd4e9a1159893c787a0e75875b0ac4d # main
+    - uses: chainguard-dev/digestabot@afe360aa3b0c29d88844138e8fa0349384398967 # main
       with:
         token: ${{ steps.octo-sts.outputs.token }}
         title-for-pr: 'Update Digests (+ cooldown)'
