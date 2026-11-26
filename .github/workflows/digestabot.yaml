@@ -37,7 +37,7 @@ jobs:
         identity: digestabot
 
     # Run digestabot
-    - uses: chainguard-dev/digestabot@afe360aa3b0c29d88844138e8fa0349384398967 # v1.3.1
+    - uses: chainguard-dev/digestabot@3e895adcf935bab7a21ebef6173d7cd4375822ab # v1.3.3
       id: digestabot
       with:
         token: ${{ steps.octo-sts.outputs.token }}
